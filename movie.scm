@@ -1,5 +1,6 @@
 #!/usr/bin/csi -script
 (use csv-string)
+; (use srfi-1)
 
 ;; creates a single entry as a list
 (define (make-entry name . attr)
@@ -25,7 +26,7 @@
 ;; given Schema
 (define (find-field field schema)
   (cond 
-    ((or (null? schema) (= (string-length field) 0)) -1)
+    ((or (null? schema) (= (string-length field) 0) (null? field)) -1)
     ((boolean? (member field schema)) -1)
     (else
       (do
@@ -42,12 +43,12 @@
 
 ;; Reads a csv file r_file into adds each record as
 ;; a member of a list
-(define (read-records in del_char)
-    (do
-      ((l '() (cons (parse-line s del_char) l))
-       (s (read-line in) (read-line in)))
-      ((null? (parse-line s del_char)) (reverse l))))
-      
+(define (read-records port del_char)
+  (let ((l '()))
+      (do
+        ((s (read-line port) (read-line port)))
+        ((eof-object? s) (filter (lambda (x) (> (length x) 3)) l))
+        (set! l (append l (list (parse-line s del_char)))))))
 
 ;; Processes a csv-record string into an list and returns
 ;; the resulting list
@@ -58,19 +59,26 @@
       (else
         (car (map csv-record->list (parser s)))))))
 
-(define (write-line x . port)
+(define (write-line x port)
   (write x port)
-  (write-char #\newline))
+  (write-char #\newline port))
 
 (define (filename f)
   (apply string-append (butlast (string-split f "."))))
 
-(define (sexp-write l f)
-  (let ((out (open-output-file f)))
-    ; (ndisp (zip schema '("str" "int" "int" "lst" "int" "int")) out)
+(define (sexp-write l out)
     (for-each (lambda (x) (write-line x out)) l)
-    (close-output-port out)))
+    (close-output-port out))
 
+(define (csv->sexp csv_file)
+  (let* ((in (open-input-file csv_file))
+        (out (open-output-file 
+               (string-append (filename csv_file) ".sexp")))
+        (schema (parse-line (read-line in) #\tab))
+        (records (read-records in #\tab)))
+    (split-genres records schema)
+    (set! (list-ref records 0) (zip schema '("str" "int" "int" "lst" "int" "int")))
+    (sexp-write records out)))
 
 ;; Splits genres that are a delimited list into individual
 ;; strings of a list
@@ -108,3 +116,4 @@
 ; (split-genres l1 schema)
 ; (ndisp (cadr l1))
 ; (sexp-write l1 "test_imdb.sexp")
+(csv->sexp "test_imdb.tsv")
