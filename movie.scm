@@ -58,10 +58,18 @@
       (else
         (car (map csv-record->list (parser s)))))))
 
+(define (write-line x . port)
+  (write x port)
+  (write-char #\newline))
+
+(define (filename f)
+  (apply string-append (butlast (string-split f "."))))
+
 (define (sexp-write l f)
-  (let ((out (open-output-file (string-append f ".sexp"))))
-    (ndisp (zip schema '("str" "int" "int" "lst" "int" "int")) out)
-    (for-each (lambda (x) (ndisp x out)) l)))
+  (let ((out (open-output-file f)))
+    ; (ndisp (zip schema '("str" "int" "int" "lst" "int" "int")) out)
+    (for-each (lambda (x) (write-line x out)) l)
+    (close-output-port out)))
 
 
 ;; Splits genres that are a delimited list into individual
@@ -93,9 +101,10 @@
            (set! res (append res (list (list-ref l2 i))))))))
 
 
-; (define l1 (read-records "test_imdb.tsv" #\tab))
+; (define in (open-input-file "test_imdb.tsv"))
+; (define l1 (read-records in #\tab))
 ; (ndisp (cadr l1))
 ; (define schema '("title" "year" "runtime" "genres" "score" "number_of_ratings"))
 ; (split-genres l1 schema)
 ; (ndisp (cadr l1))
-(sexp-write "test_imdb.tsv")
+; (sexp-write l1 "test_imdb.sexp")
