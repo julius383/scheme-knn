@@ -1,6 +1,5 @@
 #!/usr/bin/csi -script
 (use csv-string)
-; (use srfi-1)
 
 ;; creates a single entry as a list
 (define (make-entry name . attr)
