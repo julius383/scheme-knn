@@ -74,10 +74,23 @@
         (out (open-output-file 
                (string-append (filename csv_file) ".sexp")))
         (schema (parse-line (read-line in) #\tab))
-        (records (read-records in #\tab)))
+        (records (read-records in #\tab))
+        (types '("str" "int" "int" "lst" "int" "int")))
     (split-genres records schema)
-    (set! (list-ref records 0) (zip schema '("str" "int" "int" "lst" "int" "int")))
+    (set! (list-ref records 0) (zip schema types))
+    (do
+      ((i 1 (add1 i)))
+      ((= i (length records)))
+      (set! 
+        (list-ref records i) 
+        (map (lambda (x) (make-proper-type (list-ref x 0) (list-ref x 1)))
+             (zip (list-ref records i) types))))
     (sexp-write records out)))
+
+(define (make-proper-type atom type)
+  (cond
+    ((string-ci=? type "int") (string->number atom))
+    (else atom)))
 
 ;; Splits genres that are a delimited list into individual
 ;; strings of a list
@@ -108,11 +121,6 @@
            (set! res (append res (list (list-ref l2 i))))))))
 
 
-; (define in (open-input-file "test_imdb.tsv"))
-; (define l1 (read-records in #\tab))
-; (ndisp (cadr l1))
-; (define schema '("title" "year" "runtime" "genres" "score" "number_of_ratings"))
-; (split-genres l1 schema)
-; (ndisp (cadr l1))
-; (sexp-write l1 "test_imdb.sexp")
 (csv->sexp "test_imdb.tsv")
+; (display (number? (make-proper-type "123" "int")))
+; (newline)
