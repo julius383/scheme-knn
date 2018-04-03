@@ -58,13 +58,21 @@
       (else
         (car (map csv-record->list (parser s)))))))
 
+;; Writes x to the given port as a single independent line
 (define (write-line x port)
   (write x port)
   (write-char #\newline port))
 
+;; Returns a filename from a string in the name
+;; filename.ext
 (define (filename f)
-  (apply string-append (butlast (string-split f "."))))
+  (let ((name (butlast (string-split f "."))))
+    (if (> (length name) 1)
+        (apply string-append (butlast (flatten (zip name (circular-list ".")))))
+        (apply string-append name))))
 
+;; Writes each element of l to the given port on
+;; a single line
 (define (sexp-write l out)
     (for-each (lambda (x) (write-line x out)) l)
     (close-output-port out))
@@ -121,6 +129,6 @@
            (set! res (append res (list (list-ref l2 i))))))))
 
 
-(csv->sexp "test_imdb.tsv")
+; (csv->sexp "test_500.tsv")
 ; (display (number? (make-proper-type "123" "int")))
 ; (newline)
