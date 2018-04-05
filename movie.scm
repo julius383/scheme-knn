@@ -100,6 +100,15 @@
     ((string-ci=? type "int") (string->number atom))
     (else atom)))
 
+(define (sexp-read f)
+  (let* ((records '())
+         (in (open-input-file f)))
+    (do
+      ((s (read-line in) (read-line in)))
+      ((eof-object? s) (reverse records))
+      (set! records (cons (with-input-from-string s read) records)))))
+
+
 ;; Splits genres that are a delimited list into individual
 ;; strings of a list
 (define (split-genres l s)
@@ -132,3 +141,9 @@
 ; (csv->sexp "test_500.tsv")
 ; (display (number? (make-proper-type "123" "int")))
 ; (newline)
+(define r (sexp-read "test_500.sexp"))
+(do
+  ((i 0 (add1 i)))
+  ((= i 5))
+  (display (list-ref r i))
+  (newline))
