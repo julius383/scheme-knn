@@ -68,7 +68,7 @@
 (define (filename f)
   (let ((name (butlast (string-split f "."))))
     (if (> (length name) 1)
-        (apply string-append (butlast (flatten (zip name (circular-list ".")))))
+        (apply string-append (intersperse name "."))
         (apply string-append name))))
 
 ;; Writes each element of l to the given port on
@@ -137,13 +137,44 @@
           (not (inside? (list-ref l2 i) l1)) 
            (set! res (append res (list (list-ref l2 i))))))))
 
+(define (print-n l n)
+  (do
+    ((i 0 (add1 i)))
+    ((= i n))
+    (display (list-ref l i))
+    (newline)))
+
+(define (get-comparator type)
+  (cond
+    ((string-ci=? type "str") string-ci<?)
+    ((string-ci=? type "int") <)
+    ((string-ci=? type "lst") (lambda (x y) (< (length x) (length y))))
+    (else equal?)))
+
+(define (compare-elements index fn a b)
+  (fn (list-ref a index) (list-ref b index)))
+
+(define (sort-by attr l)
+  (let* ((schema (map car (car l)))
+         (types (map last (car l)))
+         (fn (find-field attr schema)))
+    (display fn)
+    (newline)
+    (if (>= fn 0)
+        (cons (car l) (sort (cdr l) 
+                            (lambda (x y) 
+                              (compare-elements fn 
+                                                (get-comparator (list-ref types fn)) 
+                                                x y)
+                                           )))
+        l)))
 
 ; (csv->sexp "test_500.tsv")
 ; (display (number? (make-proper-type "123" "int")))
 ; (newline)
 (define r (sexp-read "test_500.sexp"))
-(do
-  ((i 0 (add1 i)))
-  ((= i 5))
-  (display (list-ref r i))
-  (newline))
+(print-n r 5)
+(newline)
+(print-n (sort-by "year" r) 5)
+(newline)
+(print-n (sort-by "score" r) 5)
