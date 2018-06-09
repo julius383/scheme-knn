@@ -1,0 +1,30 @@
+Benchmark:(benchmark-run 5)
+Expression: (calculate-hamming db 541 32)
+|max               |416513.708999634|
+|min               |410719.220001221|
+|mean              |414233.365200806|
+|standard-deviation|2823.76373227548|
+
+; After changing custom membership macro use to
+;; srfi-member
+Benchmark:(benchmark-run 5)
+Expression: (calculate-hamming db 541 32)
+|max               |157004.708000183|
+|min               |154712.788002014|
+|mean              |155651.866600037|
+|standard-deviation|1026.57248361729|
+
+;; After refactoring to remove multiple calls to
+;; the same function
+Benchmark:(benchmark-run 5)
+Expression: (calculate-hamming db 541 32)
+|max               |80900.1020050049|
+|min               |79853.6699981689|
+|mean              |80178.4313995361|
+|standard-deviation|436.194183012909|
+;; Total of 80.644 speed improvement after refactoring
+
+Macro:(benchmark-measure)
+Expression: (hamming-nearest db 541)
+1973763497.735 microseconds => 32.89 minutes
+
