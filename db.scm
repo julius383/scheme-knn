@@ -1,7 +1,7 @@
 (use csv-string)
 (use sql-de-lite)
 (use micro-benchmark)
-(use (only traversal sublist))
+(use (prefix traversal "trav-"))
 (use fmt)
 
 ;; Processes a csv-record string into an list and returns
@@ -38,6 +38,10 @@
   (let ((q (string-join (list "SELECT * FROM tags where " field "=?;"))))
     (query fetch-all (sql db q) data)))
 
+(define (fetch-movie-name db movieID)
+  (let ((q "SELECT title FROM movies where movieID=?;"))
+    (query fetch (sql db q) movieID)))
+
 (define (fetch-unique-tags db movieID)
   (let ((q "SELECT DISTINCT tag from tags where movieID=?;"))
     (map (lambda (x) (car x)) (query fetch-all (sql db q) movieID))))
@@ -62,16 +66,16 @@
 
 ;; Imports all the tags in tags.csv into a database opened
 ;; containing a corresponding tags table
-(define (import-tags db)
-  (let ((recs (read-records (open-input-file "data/tags.csv") #\,))
+(define (import-tags db #!optional (in-file "data/tags.csv"))
+  (let ((recs (read-records (open-input-file in-file)#\,))
         (q "INSERT INTO tags(userID, movieID, tag, timestamp) values (?,?,?,?)"))
     (printf "Importing ~S records into tags\n" (length recs))
     (insert-multiple db recs q)))
 
 ;; Imports all entries in movielens.csv into the database given
 ;; that contains a movies table
-(define (import-movies db)
-  (let ((recs (read-records (open-input-file "data/movielens.csv") #\,))
+(define (import-movies db #!optional (in-file "data/movielens.csv"))
+  (let ((recs (read-records (open-input-file in-file) #\,))
         (q "INSERT INTO movies(movieID, title, genres) values (?,?,?)"))
     (printf "Importing ~S records into movies\n" (length recs))
     (insert-multiple db recs q)))
@@ -88,8 +92,8 @@
                                (length (list-ref l 0)))) (flatten l))
       (begin
         (list-call exec `(sql db ,(build-query 998 qstr (length (list-ref l 0)))) 
-                   (flatten (sublist l 0 999)))
-        (insert-multiple db (sublist l 999 (length l)) qstr))))
+                   (flatten (trav-sublist l 0 999)))
+        (insert-multiple db (trav-sublist l 999 (length l)) qstr))))
 
 ;; Prints micro-benchmark output in a nicely formated way
 (define (disp-benchmark alist)
@@ -100,40 +104,6 @@
          "|"
          (fmt-join/suffix dsp (map cdr alist) "\n") 
          "|")))
-
-;; Tests how long it takes to insert records one at a
-;; time into table. Varies how many records are being inserted
-(define (bench-single recs db)
-  (do
-    ((i 250 (+ i 250))
-     (l 0 (+ l i)))
-    ((>= l 5000))
-    (printf "Displaying time for inserting ~S records\n" i)
-    (disp-benchmark (benchmark-run 5 
-                                   (for-each 
-                                     (lambda (x) (insert-single-tag db x))
-                                     (sublist recs l (+ l i)))))
-    (newline)
-    (exec (sql db "delete from tags;"))))
-
-;; Tests how long it takes to insert records into
-;; a table multiple at a time. Varies how many are inserted
-;; at once
-(define (bench-multiple recs db)
-  (do
-    ((i 99 (+ i 100)))
-    ((> i 998))
-    (let* (
-           (r (flatten (sublist recs 0 (+ 1 i))))
-           (qstr (build-query i)))
-      (printf "There are ~S fields\n" (length r))
-      (printf "Displaying time for inserting ~S records simultaneously\n" i)
-      (disp-benchmark (benchmark-run 5 
-                                     (list-call exec 
-                                                `(sql db ,qstr)
-                                                r)))
-      (newline)
-      (exec (sql db "delete from tags;")))))
 
 ;; Function to build sql query string. Handles adding
 ;; the appropriate number of host parameters
